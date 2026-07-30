@@ -9,7 +9,8 @@ from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import InMemorySaver
 from pydantic import ValidationError
 
-from agent import build_graph
+from agent import build_graph, friendly_error_message
+from table_renderer import comparison_table_rows
 from schemas import (
     ChatTurnResponse,
     ETFComparisonResponse,
@@ -179,6 +180,27 @@ class WorkflowTests(unittest.IsolatedAsyncioTestCase):
         await self.turn(graph, "Compare VOO and QQQ", "concurrent")
         self.assertEqual(calls["max_active"], 2)
 
+    def test_ui_table_has_one_row_per_etf(self):
+        for ticker_count in (2, 3):
+            comparison = ETFComparisonResponse(
+                compared_etfs=[
+                    ETFComparisonRow(ticker=f"ETF{index}")
+                    for index in range(ticker_count)
+                ],
+                beginner_takeaway="Test",
+            )
+            rows = comparison_table_rows(comparison)
+            self.assertEqual(len(rows), ticker_count)
+            self.assertEqual(rows[0]["Ticker"], "ETF0")
+            self.assertIn("Top-10 concentration", rows[0])
+    def test_nested_taskgroup_error_shows_root_cause(self):
+        error = ExceptionGroup(
+            "unhandled errors in a TaskGroup",
+            [ConnectionError("All connection attempts failed")],
+        )
+        message = friendly_error_message(error)
+        self.assertNotIn("TaskGroup", message)
+        self.assertIn("Could not connect to Morningstar MCP", message)
     def test_structured_response_validation(self):
         with self.assertRaises(ValidationError):
             ETFComparisonResponse(compared_etfs=[], beginner_takeaway=123)

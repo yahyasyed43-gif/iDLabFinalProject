@@ -53,6 +53,13 @@ AZURE_OPENAI_API_VERSION=your-supported-api-version
 
 Never commit `.env` or print its secrets.
 
+## Run the Streamlit UI
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+Open `http://localhost:8501`. Comparisons appear as a responsive table with one row per ETF. Holdings and analyst summaries appear in expandable sections. Natural follow-up answers appear as regular chat messages.
 ## Example
 
 ```text

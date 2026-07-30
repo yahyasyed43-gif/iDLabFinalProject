@@ -3,6 +3,24 @@ from tabulate import tabulate
 from schemas import ETFComparisonResponse
 
 
+def comparison_table_rows(
+    comparison: ETFComparisonResponse,
+) -> list[dict[str, str]]:
+    """Create one UI table row for each ETF."""
+
+    return [
+        {
+            "Ticker": row.ticker,
+            "ETF name": row.name,
+            "Expense ratio": row.expense_ratio,
+            "Fund size": row.fund_size,
+            "Performance": row.performance,
+            "Top-10 concentration": row.holdings_concentration,
+            "Main risk": row.main_risk,
+        }
+        for row in comparison.compared_etfs
+    ]
+
 def render_comparison(result: ETFComparisonResponse) -> str:
     """Render structured backend output for CLI testing only."""
 

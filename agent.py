@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Sequence 
 from typing import Any
 
 from langchain_core.tools import BaseTool
@@ -75,11 +76,25 @@ def _message_text(model_reply: Any) -> str:
     return str(content)
 
 
-def _friendly_error(error: Exception) -> str:
-    text = str(error)
-    if "401" in text or "Unauthorized" in text:
+def friendly_error_message(error: BaseException) -> str:
+    """Reveal useful causes hidden inside asyncio ExceptionGroup wrappers."""
+
+    def leaf_messages(item: BaseException) -> list[str]:
+        nested = getattr(item, "exceptions", None)
+        if nested:
+            return [message for child in nested for message in leaf_messages(child)]
+        return [f"{type(item).__name__}: {item}"]
+
+    messages = list(dict.fromkeys(leaf_messages(error)))
+    combined = " | ".join(messages)
+    lowered = combined.lower()
+    if "401" in combined or "unauthorized" in lowered:
         return "Morningstar authentication failed. Refresh the access token in .env."
-    return text
+    if "rate limit" in lowered:
+        return "Morningstar is temporarily rate limited. Wait a moment and try again."
+    if "connecterror" in lowered or "connection attempts failed" in lowered:
+        return "Could not connect to Morningstar MCP. Check your network and MCP URL, then try again."
+    return combined
 
 
 def build_graph(
@@ -143,7 +158,7 @@ def build_graph(
             )
             return {"collected_data": data, "error": ""}
         except Exception as error:
-            return {"error": _friendly_error(error)}
+            return {"error": friendly_error_message(error)}
 
     async def create_comparison(state: ETFGraphState) -> dict[str, Any]:
         if state.get("error"):
@@ -215,8 +230,15 @@ async def initialize_chat_backend() -> Any:
     global _chat_graph
     if _chat_graph is None:
         settings = get_settings()
-        tools = await load_tools(create_mcp_client(settings))
-        _chat_graph = build_graph(settings, tools)
+        for attempt in range(2):
+            try:
+                tools = await load_tools(create_mcp_client(settings))
+                _chat_graph = build_graph(settings, tools)
+                break
+            except BaseException as error:
+                if attempt == 1:
+                    raise RuntimeError(friendly_error_message(error)) from error
+                await asyncio.sleep(1)
     return _chat_graph
 
 
