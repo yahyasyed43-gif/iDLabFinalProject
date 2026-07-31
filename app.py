@@ -94,7 +94,7 @@ st.set_page_config(page_title="ETF Engine", page_icon="🤖", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp { background: #ffffff; }
+    .stApp { background: #aba7c2; }
     section[data-testid="stSidebar"] { background: #1c866a; }
     section[data-testid="stSidebar"] * { color: white; }
     div[data-testid="stChatInput"] {
@@ -152,7 +152,7 @@ example_columns = st.columns(3)
 example_prompts = [
     "Compare VOO and QQQ",
     "Compare VOO, QQQ, and SCHD",
-    "Summarize the comparison in 4 lines",
+    "Which ETF has a lower expense ratio between VOO and SPY?",
 ]
 selected_prompt = None
 for column, example in zip(example_columns, example_prompts, strict=True):
@@ -187,3 +187,4 @@ if prompt:
                     ).model_dump(mode="json"),
                 }
             )
+

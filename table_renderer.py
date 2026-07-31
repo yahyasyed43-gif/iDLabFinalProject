@@ -3,23 +3,42 @@ from tabulate import tabulate
 from schemas import ETFComparisonResponse
 
 
+import pandas as pd
+
 def comparison_table_rows(
     comparison: ETFComparisonResponse,
 ) -> list[dict[str, str]]:
-    """Create one UI table row for each ETF."""
+    """Create a table with tickers as columns and metrics as rows."""
+
+    etfs = comparison.compared_etfs
 
     return [
         {
-            "Ticker": row.ticker,
-            "ETF name": row.name,
-            "Expense ratio": row.expense_ratio,
-            "Fund size": row.fund_size,
-            "Performance": row.performance,
-            "Top-10 concentration": row.holdings_concentration,
-            "Main risk": row.main_risk,
-        }
-        for row in comparison.compared_etfs
+            "Metric": "ETF Name",
+            **{etf.ticker: etf.name for etf in etfs},
+        },
+        {
+            "Metric": "Expense Ratio",
+            **{etf.ticker: etf.expense_ratio for etf in etfs},
+        },
+        {
+            "Metric": "Fund Size",
+            **{etf.ticker: etf.fund_size for etf in etfs},
+        },
+        {
+            "Metric": "Performance",
+            **{etf.ticker: etf.performance for etf in etfs},
+        },
+        {
+            "Metric": "Top-10 Concentration",
+            **{etf.ticker: etf.holdings_concentration for etf in etfs},
+        },
+        {
+            "Metric": "Main Risk",
+            **{etf.ticker: etf.main_risk for etf in etfs},
+        },
     ]
+
 
 def render_comparison(result: ETFComparisonResponse) -> str:
     """Render structured backend output for CLI testing only."""
