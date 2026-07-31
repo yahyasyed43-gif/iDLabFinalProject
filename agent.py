@@ -30,11 +30,14 @@ _COMMON_WORDS = {"ADD", "AND", "ETF", "ETFS", "HOW", "NOW", "THE", "WHAT", "WHIC
 COMPARISON_PROMPT = """Build the requested ETFComparisonResponse using only the supplied
 Morningstar data. Never invent values. Use 'Not available' when data is missing. Keep it
 beginner-friendly and return structured data rather than Markdown.
+Use the supplied user profile to adjust explanation depth and emphasize relevant tradeoffs,
+but do not present the profile as financial advice or invent a recommendation.
 """
 
 FOLLOW_UP_PROMPT = """Answer the user's follow-up using only the saved ETF comparison.
 Answer naturally instead of repeating the full table. Follow requested formatting exactly;
 for example, if the user asks for four lines, return exactly four short lines.
+Tailor the explanation to the supplied user profile without presenting personalized financial advice.
 """
 
 
@@ -175,6 +178,7 @@ def build_graph(
                     json.dumps(
                         {
                             "question": state["message"],
+                            "user_profile": state.get("user_profile", {}),
                             **state["collected_data"],
                         },
                         default=str,
@@ -202,6 +206,7 @@ def build_graph(
                     (
                         "user",
                         f"Saved comparison:\n{json.dumps(state['last_comparison'])}\n\n"
+                        f"User profile:\n{json.dumps(state.get('user_profile', {}))}\n\n"
                         f"Follow-up question:\n{state['message']}",
                     ),
                 ]
@@ -246,10 +251,15 @@ async def run_chat_turn(
     message: str,
     thread_id: str,
     include_research: bool = False,
+    user_profile: dict[str, str] | None = None,
 ) -> ChatTurnResponse:
     graph = await initialize_chat_backend()
     result = await graph.ainvoke(
-        {"message": message, "frontend_include_research": include_research},
+        {
+            "message": message,
+            "frontend_include_research": include_research,
+            "user_profile": user_profile or {},
+        },
         config={"configurable": {"thread_id": thread_id}},
     )
     return ChatTurnResponse.model_validate(result["response"])

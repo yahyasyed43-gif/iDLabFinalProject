@@ -45,6 +45,7 @@ class ChatTurnResponse(BaseModel):
 
 class ETFGraphState(TypedDict, total=False):
     message: str
+    user_profile: dict[str, str]
     frontend_include_research: bool
     tickers: list[str]
     include_research: bool
